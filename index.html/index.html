@@ -1,0 +1,1723 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS PROTOCOL — Enter The Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --neon-cyan: #00f5ff;
+  --neon-magenta: #ff0080;
+  --neon-gold: #ffd700;
+  --neon-green: #00ff88;
+  --deep-black: #010208;
+  --dark-navy: #020a1a;
+  --plasma-blue: #0033ff;
+  --fire-orange: #ff4400;
+  --void-purple: #6600ff;
+  --ice-white: #e0f7ff;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; overflow-x: hidden; }
+
+body {
+  background: var(--deep-black);
+  color: var(--ice-white);
+  font-family: 'Rajdhani', sans-serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ═══════════════ CUSTOM CURSOR ═══════════════ */
+#cursor {
+  width: 20px; height: 20px;
+  border: 2px solid var(--neon-cyan);
+  border-radius: 50%;
+  position: fixed; pointer-events: none; z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s, height 0.2s, background 0.2s;
+  mix-blend-mode: screen;
+}
+#cursor-dot {
+  width: 4px; height: 4px;
+  background: var(--neon-cyan);
+  border-radius: 50%;
+  position: fixed; pointer-events: none; z-index: 99999;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+#cursor-trail {
+  position: fixed; pointer-events: none; z-index: 99998;
+  top: 0; left: 0; width: 100%; height: 100%;
+}
+
+/* ═══════════════ CANVAS LAYERS ═══════════════ */
+#bg-canvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 0;
+  pointer-events: none;
+}
+
+/* ═══════════════ SCANLINE OVERLAY ═══════════════ */
+.scanlines {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 9000; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,245,255,0.015) 2px, rgba(0,245,255,0.015) 4px
+  );
+  animation: scanMove 8s linear infinite;
+}
+@keyframes scanMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100vh; }
+}
+
+/* ═══════════════ NOISE OVERLAY ═══════════════ */
+.noise {
+  position: fixed; top: -50%; left: -50%;
+  width: 200%; height: 200%; z-index: 8999; pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: noiseAnim 0.2s infinite;
+}
+@keyframes noiseAnim {
+  0%,100%{transform:translate(0,0)} 10%{transform:translate(-1%,-1%)} 20%{transform:translate(1%,-2%)} 30%{transform:translate(-2%,1%)} 40%{transform:translate(2%,2%)} 50%{transform:translate(-1%,2%)} 60%{transform:translate(1%,-1%)} 70%{transform:translate(-2%,-2%)} 80%{transform:translate(2%,1%)} 90%{transform:translate(-1%,2%)}
+}
+
+/* ═══════════════ VIGNETTE ═══════════════ */
+.vignette {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%; z-index: 8998; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+}
+
+/* ═══════════════ NAV ═══════════════ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 5000; padding: 18px 50px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(180deg, rgba(1,2,8,0.95) 0%, transparent 100%);
+  backdrop-filter: blur(2px);
+}
+.nav-logo {
+  font-family: 'Orbitron', monospace; font-weight: 900; font-size: 1.4rem;
+  letter-spacing: 0.3em; color: var(--neon-cyan);
+  text-shadow: 0 0 20px var(--neon-cyan), 0 0 40px rgba(0,245,255,0.4);
+  animation: logoPulse 3s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%,100%{text-shadow:0 0 20px var(--neon-cyan),0 0 40px rgba(0,245,255,0.4);}
+  50%{text-shadow:0 0 40px var(--neon-cyan),0 0 80px rgba(0,245,255,0.7),0 0 120px rgba(0,245,255,0.3);}
+}
+.nav-links { display: flex; gap: 40px; list-style: none; }
+.nav-links a {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 0.2em; color: rgba(224,247,255,0.6);
+  text-decoration: none; text-transform: uppercase;
+  transition: color 0.3s, text-shadow 0.3s;
+  position: relative;
+}
+.nav-links a::after {
+  content: ''; position: absolute; bottom: -4px; left: 0;
+  width: 0; height: 1px; background: var(--neon-cyan);
+  transition: width 0.3s;
+}
+.nav-links a:hover { color: var(--neon-cyan); text-shadow: 0 0 12px var(--neon-cyan); }
+.nav-links a:hover::after { width: 100%; }
+.nav-status {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+  color: var(--neon-green);
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--neon-green);
+  box-shadow: 0 0 10px var(--neon-green);
+  animation: statusBlink 1.5s ease-in-out infinite;
+}
+@keyframes statusBlink {
+  0%,100%{opacity:1;} 50%{opacity:0.3;}
+}
+
+/* ═══════════════ HERO SECTION ═══════════════ */
+#hero {
+  position: relative; min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; z-index: 1;
+}
+
+/* 3D Grid Floor */
+.grid-floor {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 60%;
+  transform-origin: bottom; z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(0,245,255,0.12) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(0,245,255,0.12) 1px, transparent 1px);
+  background-size: 60px 60px;
+  transform: perspective(600px) rotateX(70deg) scaleY(2);
+  animation: gridScroll 4s linear infinite;
+  mask-image: linear-gradient(180deg, transparent 0%, black 40%);
+}
+@keyframes gridScroll {
+  0%{background-position:0 0;}
+  100%{background-position:0 60px;}
+}
+
+/* Horizon glow */
+.horizon-glow {
+  position: absolute; bottom: 35%; left: 50%;
+  transform: translateX(-50%);
+  width: 120%; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--void-purple), var(--neon-magenta), transparent);
+  filter: blur(6px);
+  box-shadow: 0 0 60px var(--neon-cyan), 0 20px 60px rgba(0,245,255,0.3);
+  z-index: 2;
+  animation: horizonFlicker 4s ease-in-out infinite;
+}
+@keyframes horizonFlicker {
+  0%,100%{opacity:1;} 45%{opacity:0.7;} 47%{opacity:1;} 50%{opacity:0.5;} 52%{opacity:1;}
+}
+
+.hero-content {
+  position: relative; z-index: 10; text-align: center;
+  padding: 20px;
+}
+
+.hero-pretext {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 0.5em; color: var(--neon-magenta);
+  text-transform: uppercase;
+  animation: fadeSlideDown 1s ease both;
+  text-shadow: 0 0 20px var(--neon-magenta);
+  margin-bottom: 20px;
+}
+
+.hero-title {
+  font-family: 'Orbitron', monospace; font-weight: 900;
+  font-size: clamp(3.5rem, 12vw, 10rem);
+  line-height: 0.9; letter-spacing: -0.02em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  animation: fadeSlideUp 1s ease 0.2s both;
+}
+.hero-title .line1 {
+  display: block; color: transparent;
+  -webkit-text-stroke: 2px var(--neon-cyan);
+  filter: drop-shadow(0 0 20px var(--neon-cyan));
+  animation: titleGlitch 6s infinite;
+}
+.hero-title .line2 {
+  display: block;
+  background: linear-gradient(135deg, var(--neon-gold) 0%, var(--fire-orange) 30%, var(--neon-magenta) 60%, var(--void-purple) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 0 30px rgba(255,215,0,0.6));
+  animation: titleShift 4s ease-in-out infinite;
+}
+@keyframes titleShift {
+  0%,100%{filter:drop-shadow(0 0 30px rgba(255,215,0,0.6));}
+  50%{filter:drop-shadow(0 0 50px rgba(255,0,128,0.8));}
+}
+@keyframes titleGlitch {
+  0%,90%,100%{transform:none;filter:drop-shadow(0 0 20px var(--neon-cyan));}
+  92%{transform:translate(-3px,0) skewX(-3deg);filter:drop-shadow(4px 0 0 rgba(255,0,0,0.8)) drop-shadow(-4px 0 0 rgba(0,255,255,0.8));}
+  94%{transform:translate(3px,0) skewX(3deg);}
+  96%{transform:translate(-2px,0);}
+  98%{transform:none;}
+}
+
+.hero-sub {
+  font-size: clamp(0.9rem, 2vw, 1.3rem); letter-spacing: 0.4em;
+  color: rgba(224,247,255,0.5); text-transform: uppercase;
+  margin-bottom: 50px; font-weight: 300;
+  animation: fadeSlideUp 1s ease 0.4s both;
+}
+
+.hero-cta-group {
+  display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+  animation: fadeSlideUp 1s ease 0.6s both;
+}
+
+.btn-primary {
+  position: relative; padding: 16px 50px;
+  font-family: 'Orbitron', monospace; font-size: 0.8rem;
+  font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--deep-black); background: var(--neon-cyan);
+  border: none; cursor: none; overflow: hidden;
+  clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  transition: transform 0.2s, box-shadow 0.3s;
+  box-shadow: 0 0 30px rgba(0,245,255,0.5), inset 0 0 30px rgba(255,255,255,0.1);
+  text-decoration: none; display: inline-block;
+}
+.btn-primary::before {
+  content: ''; position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: btnShine 3s infinite;
+}
+@keyframes btnShine { 0%{left:-100%;} 50%,100%{left:100%;} }
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 0 60px rgba(0,245,255,0.9), 0 10px 40px rgba(0,245,255,0.4);
+}
+
+.btn-secondary {
+  position: relative; padding: 16px 50px;
+  font-family: 'Orbitron', monospace; font-size: 0.8rem;
+  font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--neon-magenta); background: transparent;
+  border: 1px solid var(--neon-magenta); cursor: none; overflow: hidden;
+  clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+  transition: all 0.3s; text-decoration: none; display: inline-block;
+  box-shadow: 0 0 20px rgba(255,0,128,0.3), inset 0 0 20px rgba(255,0,128,0.05);
+}
+.btn-secondary:hover {
+  background: rgba(255,0,128,0.15);
+  box-shadow: 0 0 50px rgba(255,0,128,0.7), inset 0 0 30px rgba(255,0,128,0.2);
+  transform: translateY(-3px);
+}
+
+/* Floating UI elements */
+.hud-element {
+  position: absolute; font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem; letter-spacing: 0.15em; color: rgba(0,245,255,0.5);
+  animation: hudFloat 4s ease-in-out infinite;
+  pointer-events: none; z-index: 5;
+}
+@keyframes hudFloat {
+  0%,100%{transform:translateY(0);opacity:0.5;}
+  50%{transform:translateY(-10px);opacity:0.8;}
+}
+.hud-tl { top: 20%; left: 5%; animation-delay: 0s; }
+.hud-tr { top: 25%; right: 5%; animation-delay: 1.5s; }
+.hud-bl { bottom: 20%; left: 5%; animation-delay: 0.7s; }
+.hud-br { bottom: 15%; right: 5%; animation-delay: 2.2s; }
+.hud-label { color: var(--neon-green); margin-bottom: 5px; font-size: 0.55rem; }
+.hud-value { font-size: 1.2rem; color: var(--neon-cyan); }
+
+/* Corner brackets */
+.corner-bracket {
+  position: absolute; width: 40px; height: 40px; z-index: 20;
+  opacity: 0.6;
+}
+.cb-tl { top: 15%; left: 4%; border-top: 2px solid var(--neon-cyan); border-left: 2px solid var(--neon-cyan); }
+.cb-tr { top: 15%; right: 4%; border-top: 2px solid var(--neon-cyan); border-right: 2px solid var(--neon-cyan); }
+.cb-bl { bottom: 30%; left: 4%; border-bottom: 2px solid var(--neon-cyan); border-left: 2px solid var(--neon-cyan); }
+.cb-br { bottom: 30%; right: 4%; border-bottom: 2px solid var(--neon-cyan); border-right: 2px solid var(--neon-cyan); }
+
+/* Scroll indicator */
+.scroll-indicator {
+  position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 20;
+  animation: indicatorBounce 2s ease-in-out infinite;
+}
+@keyframes indicatorBounce { 0%,100%{transform:translateX(-50%) translateY(0);} 50%{transform:translateX(-50%) translateY(8px);} }
+.scroll-indicator span {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+  letter-spacing: 0.3em; color: rgba(0,245,255,0.5); text-transform: uppercase;
+}
+.scroll-arrow {
+  width: 20px; height: 20px; border-right: 2px solid var(--neon-cyan);
+  border-bottom: 2px solid var(--neon-cyan); transform: rotate(45deg);
+  opacity: 0.5;
+}
+
+/* ═══════════════ SLIDES SECTION ═══════════════ */
+#slides {
+  position: relative; z-index: 1;
+  min-height: 100vh; overflow: hidden;
+}
+
+.slides-container {
+  display: flex; width: 500%; transition: transform 0.8s cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.slide {
+  width: 20%; min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  padding: 80px 80px;
+}
+
+/* SLIDE 1 — COMBAT */
+.slide-1 {
+  background: radial-gradient(ellipse at 30% 50%, rgba(255,68,0,0.25) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 80%, rgba(102,0,255,0.2) 0%, transparent 50%),
+              var(--deep-black);
+}
+/* SLIDE 2 — STEALTH */
+.slide-2 {
+  background: radial-gradient(ellipse at 70% 30%, rgba(0,255,136,0.2) 0%, transparent 60%),
+              radial-gradient(ellipse at 20% 70%, rgba(0,51,255,0.2) 0%, transparent 50%),
+              var(--deep-black);
+}
+/* SLIDE 3 — SPACE */
+.slide-3 {
+  background: radial-gradient(ellipse at 50% 50%, rgba(0,245,255,0.1) 0%, transparent 60%),
+              radial-gradient(ellipse at 90% 10%, rgba(255,0,128,0.2) 0%, transparent 50%),
+              var(--deep-black);
+}
+/* SLIDE 4 — CYBER */
+.slide-4 {
+  background: radial-gradient(ellipse at 10% 50%, rgba(255,215,0,0.2) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 90%, rgba(0,245,255,0.15) 0%, transparent 50%),
+              var(--deep-black);
+}
+/* SLIDE 5 — VOID */
+.slide-5 {
+  background: radial-gradient(ellipse at 60% 40%, rgba(102,0,255,0.3) 0%, transparent 60%),
+              var(--deep-black);
+}
+
+.slide-content {
+  position: relative; z-index: 10; max-width: 600px;
+}
+.slide-tag {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+  letter-spacing: 0.4em; text-transform: uppercase; margin-bottom: 20px;
+  opacity: 0.7;
+}
+.slide-num {
+  font-family: 'Orbitron', monospace; font-size: 5rem; font-weight: 900;
+  opacity: 0.05; position: absolute; top: -20px; right: 0; line-height: 1;
+  pointer-events: none;
+}
+.slide-title {
+  font-family: 'Orbitron', monospace; font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 900; text-transform: uppercase; line-height: 1;
+  margin-bottom: 25px; letter-spacing: -0.02em;
+}
+.slide-desc {
+  font-size: 1.1rem; line-height: 1.8; color: rgba(224,247,255,0.6);
+  font-weight: 300; margin-bottom: 35px; letter-spacing: 0.05em;
+}
+.slide-stats {
+  display: flex; gap: 30px; margin-bottom: 35px;
+}
+.stat-item { text-align: center; }
+.stat-val {
+  font-family: 'Orbitron', monospace; font-size: 1.6rem;
+  font-weight: 900; display: block;
+}
+.stat-lbl {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+  letter-spacing: 0.2em; opacity: 0.5; text-transform: uppercase;
+}
+
+/* Slide visuals */
+.slide-visual {
+  position: absolute; right: 8%; top: 50%; transform: translateY(-50%);
+  width: 45%; height: 80%;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 5;
+}
+
+/* 3D Rotating wireframe cube */
+.wireframe-cube {
+  width: 200px; height: 200px;
+  position: relative; transform-style: preserve-3d;
+  animation: spinCube 12s linear infinite;
+}
+@keyframes spinCube {
+  from{transform:rotateX(30deg) rotateY(0deg) rotateZ(10deg);}
+  to{transform:rotateX(30deg) rotateY(360deg) rotateZ(10deg);}
+}
+.cube-face {
+  position: absolute; width: 200px; height: 200px;
+  border: 1px solid rgba(0,245,255,0.4);
+  background: rgba(0,245,255,0.02);
+  backface-visibility: visible;
+}
+.cube-face.front{transform:translateZ(100px);}
+.cube-face.back{transform:translateZ(-100px) rotateY(180deg);}
+.cube-face.left{transform:rotateY(-90deg) translateZ(100px);}
+.cube-face.right{transform:rotateY(90deg) translateZ(100px);}
+.cube-face.top{transform:rotateX(90deg) translateZ(100px);}
+.cube-face.bottom{transform:rotateX(-90deg) translateZ(100px);}
+
+/* Floating orbs */
+.orb {
+  position: absolute; border-radius: 50%;
+  animation: orbFloat 6s ease-in-out infinite;
+  filter: blur(1px);
+}
+@keyframes orbFloat {
+  0%,100%{transform:translateY(0) scale(1);}
+  33%{transform:translateY(-30px) scale(1.1);}
+  66%{transform:translateY(15px) scale(0.95);}
+}
+
+/* Slide nav dots */
+.slides-nav {
+  position: fixed; right: 30px; top: 50%;
+  transform: translateY(-50%); z-index: 6000;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.slide-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 1px solid rgba(0,245,255,0.4);
+  background: transparent; cursor: none; transition: all 0.3s;
+  position: relative;
+}
+.slide-dot.active {
+  background: var(--neon-cyan);
+  box-shadow: 0 0 15px var(--neon-cyan);
+  transform: scale(1.5);
+}
+.slide-dot:hover { border-color: var(--neon-cyan); background: rgba(0,245,255,0.3); }
+
+/* Slide arrows */
+.slide-arrow {
+  position: fixed; top: 50%; z-index: 6000;
+  width: 50px; height: 50px;
+  border: 1px solid rgba(0,245,255,0.3);
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+  cursor: none; transition: all 0.3s;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+.slide-arrow:hover { border-color: var(--neon-cyan); box-shadow: 0 0 20px rgba(0,245,255,0.5); }
+.slide-prev { left: 20px; transform: translateY(-50%); }
+.slide-next { right: 60px; transform: translateY(-50%); }
+.slide-arrow svg { width: 20px; height: 20px; fill: none; stroke: var(--neon-cyan); stroke-width: 2; }
+
+/* ═══════════════ GAMES GRID ═══════════════ */
+#games {
+  position: relative; z-index: 1; padding: 120px 60px;
+}
+.section-header {
+  text-align: center; margin-bottom: 80px;
+}
+.section-tag {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+  letter-spacing: 0.5em; color: var(--neon-magenta);
+  text-transform: uppercase; margin-bottom: 15px; display: block;
+  text-shadow: 0 0 10px var(--neon-magenta);
+}
+.section-title {
+  font-family: 'Orbitron', monospace; font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 900; text-transform: uppercase;
+  background: linear-gradient(135deg, var(--ice-white), var(--neon-cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  letter-spacing: -0.02em;
+}
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px; max-width: 1400px; margin: 0 auto;
+}
+.game-card {
+  position: relative; height: 400px; overflow: hidden;
+  background: var(--dark-navy); cursor: none;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.game-card:first-child { grid-column: span 2; height: 500px; }
+.game-card::before {
+  content: ''; position: absolute; inset: 0; z-index: 2;
+  background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.9) 100%);
+}
+.game-card-bg {
+  position: absolute; inset: 0; z-index: 1;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.game-card:hover .game-card-bg { transform: scale(1.08); }
+.game-card:hover { transform: translateY(-4px); z-index: 10; }
+.game-card-info {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 30px; z-index: 5;
+}
+.game-card-genre {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+  letter-spacing: 0.3em; text-transform: uppercase;
+  margin-bottom: 8px; opacity: 0.7;
+}
+.game-card-title {
+  font-family: 'Orbitron', monospace; font-size: 1.4rem;
+  font-weight: 700; text-transform: uppercase; margin-bottom: 8px;
+}
+.game-card-rating {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+}
+
+/* Animated card backgrounds using CSS */
+.bg-combat {
+  background:
+    radial-gradient(ellipse at 30% 70%, rgba(255,68,0,0.6) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(255,0,128,0.4) 0%, transparent 40%),
+    linear-gradient(135deg, #1a0005 0%, #0a0010 50%, #0d0500 100%);
+  animation: bgShift1 8s ease-in-out infinite;
+}
+@keyframes bgShift1 {
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(1.3) saturate(1.2);}
+}
+.bg-stealth {
+  background:
+    radial-gradient(ellipse at 60% 40%, rgba(0,255,136,0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 10% 80%, rgba(0,51,255,0.3) 0%, transparent 40%),
+    linear-gradient(135deg, #000d0a 0%, #00050f 100%);
+  animation: bgShift2 10s ease-in-out infinite;
+}
+@keyframes bgShift2 {
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(1.2) hue-rotate(20deg);}
+}
+.bg-space {
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(102,0,255,0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,245,255,0.2) 0%, transparent 40%),
+    linear-gradient(180deg, #000008 0%, #040010 100%);
+  animation: bgShift3 12s ease-in-out infinite;
+}
+@keyframes bgShift3 {
+  0%,100%{filter:brightness(1);}
+  33%{filter:brightness(1.4) saturate(1.5);}
+}
+.bg-cyber {
+  background:
+    radial-gradient(ellipse at 40% 60%, rgba(255,215,0,0.3) 0%, transparent 50%),
+    linear-gradient(135deg, #0d0800 0%, #000a0d 100%);
+}
+.bg-mech {
+  background:
+    radial-gradient(ellipse at 70% 30%, rgba(255,68,0,0.3) 0%, transparent 50%),
+    linear-gradient(135deg, #0d0300 0%, #050005 100%);
+}
+
+/* Stars in bg-space */
+.bg-space::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, white, transparent),
+    radial-gradient(1px 1px at 40% 60%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 60% 20%, white, transparent),
+    radial-gradient(1px 1px at 80% 80%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 15% 75%, white, transparent),
+    radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(2px 2px at 90% 10%, rgba(0,245,255,0.8), transparent),
+    radial-gradient(2px 2px at 35% 85%, rgba(255,0,128,0.8), transparent);
+  animation: starTwinkle 3s ease-in-out infinite;
+}
+@keyframes starTwinkle { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+
+/* Card glow overlay on hover */
+.game-card::after {
+  content: ''; position: absolute; inset: 0; z-index: 3;
+  opacity: 0; transition: opacity 0.4s;
+  border: 1px solid var(--neon-cyan);
+  box-shadow: inset 0 0 40px rgba(0,245,255,0.2);
+}
+.game-card:hover::after { opacity: 1; }
+
+/* ═══════════════ FEATURES ═══════════════ */
+#features {
+  position: relative; z-index: 1; padding: 120px 60px;
+  background: linear-gradient(180deg, transparent, rgba(0,20,40,0.5), transparent);
+}
+.features-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 2px; max-width: 1400px; margin: 0 auto;
+}
+.feat-card {
+  padding: 50px 35px; position: relative; overflow: hidden;
+  background: rgba(0,10,25,0.8); transition: all 0.4s;
+  border-top: 1px solid rgba(0,245,255,0.1);
+}
+.feat-card::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  transform: translateX(-100%); transition: transform 0.5s;
+}
+.feat-card:hover::before { transform: translateX(0); }
+.feat-card:hover { background: rgba(0,20,50,0.9); }
+.feat-icon {
+  width: 60px; height: 60px; margin-bottom: 25px;
+  position: relative;
+}
+.feat-icon-inner {
+  width: 100%; height: 100%;
+  border: 1px solid rgba(0,245,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; position: relative; overflow: hidden;
+  clip-path: polygon(15px 0%, 100% 0%, calc(100% - 15px) 100%, 0% 100%);
+  background: rgba(0,245,255,0.05);
+  transition: all 0.4s;
+}
+.feat-card:hover .feat-icon-inner {
+  background: rgba(0,245,255,0.15);
+  box-shadow: 0 0 20px rgba(0,245,255,0.4);
+}
+.feat-title {
+  font-family: 'Orbitron', monospace; font-size: 1rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 12px; color: var(--neon-cyan);
+}
+.feat-desc {
+  font-size: 0.9rem; line-height: 1.7;
+  color: rgba(224,247,255,0.5); font-weight: 300;
+}
+.feat-num {
+  position: absolute; top: 20px; right: 20px;
+  font-family: 'Orbitron', monospace; font-size: 0.65rem;
+  color: rgba(0,245,255,0.2); letter-spacing: 0.2em;
+}
+
+/* ═══════════════ STATS BAND ═══════════════ */
+#stats {
+  position: relative; z-index: 1; padding: 80px 60px;
+  background: rgba(0,5,15,0.9);
+  border-top: 1px solid rgba(0,245,255,0.1);
+  border-bottom: 1px solid rgba(0,245,255,0.1);
+}
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0; max-width: 1200px; margin: 0 auto;
+}
+.stat-block {
+  text-align: center; padding: 40px 20px;
+  border-right: 1px solid rgba(0,245,255,0.1);
+  position: relative;
+}
+.stat-block:last-child { border-right: none; }
+.stat-number {
+  font-family: 'Orbitron', monospace; font-size: 3rem;
+  font-weight: 900; letter-spacing: -0.03em;
+  display: block; margin-bottom: 8px;
+}
+.stat-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+  letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.5;
+}
+.stat-bar {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  height: 2px; background: var(--neon-cyan);
+  box-shadow: 0 0 10px var(--neon-cyan);
+  animation: statBarExpand 2s ease-out both;
+}
+@keyframes statBarExpand { from{width:0;} to{width:60%;} }
+
+/* ═══════════════ LEADERBOARD ═══════════════ */
+#leaderboard {
+  position: relative; z-index: 1; padding: 120px 60px;
+}
+.lb-table {
+  max-width: 900px; margin: 0 auto; position: relative;
+}
+.lb-row {
+  display: grid; grid-template-columns: 60px 1fr 1fr 120px;
+  align-items: center; padding: 18px 30px;
+  border-bottom: 1px solid rgba(0,245,255,0.08);
+  transition: all 0.3s; position: relative; overflow: hidden;
+}
+.lb-row::before {
+  content: ''; position: absolute; left: 0; top: 0;
+  height: 100%; width: 0; background: rgba(0,245,255,0.05);
+  transition: width 0.4s;
+}
+.lb-row:hover::before { width: 100%; }
+.lb-row:hover { border-color: rgba(0,245,255,0.3); }
+.lb-rank {
+  font-family: 'Orbitron', monospace; font-size: 1.2rem;
+  font-weight: 900; color: rgba(0,245,255,0.4);
+}
+.lb-rank.gold { color: var(--neon-gold); text-shadow: 0 0 15px var(--neon-gold); }
+.lb-rank.silver { color: #c0c0c0; }
+.lb-rank.bronze { color: #cd7f32; }
+.lb-player {
+  font-family: 'Orbitron', monospace; font-size: 0.85rem;
+  font-weight: 700; letter-spacing: 0.1em; color: var(--ice-white);
+}
+.lb-level {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+  color: rgba(0,245,255,0.5); letter-spacing: 0.2em;
+}
+.lb-score {
+  font-family: 'Orbitron', monospace; font-size: 1rem;
+  font-weight: 900; color: var(--neon-green); text-align: right;
+  text-shadow: 0 0 10px var(--neon-green);
+}
+
+/* ═══════════════ MOVING OBSTACLES (background elements) ═══════════════ */
+.obstacle {
+  position: fixed; pointer-events: none; z-index: 2;
+  opacity: 0.15; border: 1px solid var(--neon-cyan);
+}
+.obs-1 {
+  width: 80px; height: 80px;
+  top: 30%; left: -100px;
+  animation: obsMove1 15s linear infinite;
+  transform: rotate(45deg);
+}
+@keyframes obsMove1 {
+  from{left:-100px;top:30%;transform:rotate(0deg);}
+  to{left:110%;top:60%;transform:rotate(720deg);}
+}
+.obs-2 {
+  width: 40px; height: 40px;
+  top: 60%; right: -100px;
+  border-color: var(--neon-magenta);
+  animation: obsMove2 20s linear infinite 5s;
+  border-radius: 50%;
+}
+@keyframes obsMove2 {
+  from{right:-100px;top:60%;}
+  to{right:110%;top:20%;}
+}
+.obs-3 {
+  width: 60px; height: 60px;
+  top: 80%; left: -100px;
+  border-color: var(--neon-gold);
+  animation: obsMove3 18s linear infinite 8s;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+@keyframes obsMove3 {
+  from{left:-100px;top:80%;transform:rotate(0deg);}
+  to{left:110%;top:10%;transform:rotate(540deg);}
+}
+
+/* ═══════════════ FOOTER ═══════════════ */
+footer {
+  position: relative; z-index: 1; padding: 80px 60px 40px;
+  border-top: 1px solid rgba(0,245,255,0.1);
+  background: var(--deep-black);
+}
+.footer-grid {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 60px; margin-bottom: 60px; max-width: 1200px; margin: 0 auto 60px;
+}
+.footer-brand .nav-logo { font-size: 1.2rem; display: block; margin-bottom: 20px; }
+.footer-about { font-size: 0.9rem; line-height: 1.8; color: rgba(224,247,255,0.4); }
+.footer-col-title {
+  font-family: 'Orbitron', monospace; font-size: 0.75rem;
+  font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--neon-cyan); margin-bottom: 20px;
+}
+.footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-links a {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+  letter-spacing: 0.1em; color: rgba(224,247,255,0.4);
+  text-decoration: none; transition: color 0.3s;
+}
+.footer-links a:hover { color: var(--neon-cyan); }
+.footer-bottom {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 30px; border-top: 1px solid rgba(0,245,255,0.08);
+  max-width: 1200px; margin: 0 auto;
+}
+.footer-copy {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+  letter-spacing: 0.2em; color: rgba(224,247,255,0.2);
+}
+.footer-version {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+  color: var(--neon-cyan); opacity: 0.4;
+}
+
+/* ═══════════════ LOADING SCREEN ═══════════════ */
+#loader {
+  position: fixed; inset: 0; z-index: 99999;
+  background: var(--deep-black);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: opacity 0.8s ease;
+}
+.loader-logo {
+  font-family: 'Orbitron', monospace; font-size: 3rem; font-weight: 900;
+  letter-spacing: 0.3em; color: var(--neon-cyan);
+  text-shadow: 0 0 40px var(--neon-cyan);
+  margin-bottom: 50px; animation: loaderPulse 1s ease-in-out infinite;
+}
+@keyframes loaderPulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.loader-bar-wrap {
+  width: 300px; height: 2px; background: rgba(0,245,255,0.15); margin-bottom: 20px;
+}
+.loader-bar {
+  height: 100%; background: var(--neon-cyan);
+  box-shadow: 0 0 15px var(--neon-cyan);
+  animation: loadProgress 2.5s ease-out forwards;
+}
+@keyframes loadProgress { from{width:0;} to{width:100%;} }
+.loader-text {
+  font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+  letter-spacing: 0.4em; color: rgba(0,245,255,0.5); text-transform: uppercase;
+  animation: loaderText 2.5s steps(1) infinite;
+}
+@keyframes loaderText {
+  0%{content:'INITIALIZING SYSTEMS';}
+  25%{content:'LOADING ASSETS';}
+  50%{content:'CALIBRATING VFX ENGINE';}
+  75%{content:'ENTERING THE NEXUS';}
+}
+
+/* ═══════════════ GLITCH TEXT UTILITY ═══════════════ */
+.glitch {
+  position: relative;
+}
+.glitch::before, .glitch::after {
+  content: attr(data-text);
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+}
+.glitch::before {
+  color: var(--neon-magenta); z-index: -1;
+  animation: glitch1 4s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+}
+.glitch::after {
+  color: var(--neon-cyan); z-index: -2;
+  animation: glitch2 4s infinite;
+  clip-path: polygon(0 66%, 100% 66%, 100% 100%, 0 100%);
+}
+@keyframes glitch1 {
+  0%,90%,100%{transform:none;opacity:0;}
+  92%{transform:translateX(-3px);opacity:0.8;}
+  94%{transform:translateX(3px);opacity:0.8;}
+  96%{transform:none;opacity:0;}
+}
+@keyframes glitch2 {
+  0%,88%,100%{transform:none;opacity:0;}
+  90%{transform:translateX(3px);opacity:0.8;}
+  92%{transform:translateX(-3px);opacity:0.8;}
+  94%{transform:none;opacity:0;}
+}
+
+/* ═══════════════ ANIMATIONS ═══════════════ */
+@keyframes fadeSlideUp { from{opacity:0;transform:translateY(30px);} to{opacity:1;transform:translateY(0);} }
+@keyframes fadeSlideDown { from{opacity:0;transform:translateY(-20px);} to{opacity:1;transform:translateY(0);} }
+
+/* ═══════════════ SCROLL REVEAL ═══════════════ */
+.reveal {
+  opacity: 0; transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ═══════════════ AMBIENT ORBS ═══════════════ */
+.ambient-orb {
+  position: fixed; border-radius: 50%; pointer-events: none;
+  filter: blur(80px); z-index: 0; opacity: 0.08;
+  animation: ambientDrift 20s ease-in-out infinite;
+}
+.ao1 { width: 600px; height: 600px; background: var(--void-purple); top: -200px; left: -100px; animation-delay: 0s; }
+.ao2 { width: 500px; height: 500px; background: var(--neon-magenta); bottom: -100px; right: -100px; animation-delay: 7s; }
+.ao3 { width: 400px; height: 400px; background: var(--neon-cyan); top: 40%; left: 30%; animation-delay: 14s; }
+@keyframes ambientDrift {
+  0%,100%{transform:translate(0,0) scale(1);}
+  33%{transform:translate(60px,-40px) scale(1.1);}
+  66%{transform:translate(-40px,60px) scale(0.9);}
+}
+
+/* Responsive */
+@media(max-width:900px){
+  .games-grid{grid-template-columns:1fr!important;}
+  .game-card:first-child{grid-column:span 1!important;}
+  .features-grid{grid-template-columns:repeat(2,1fr);}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .footer-grid{grid-template-columns:1fr!important;}
+  nav{padding:15px 20px;}
+  .nav-links{display:none;}
+  #hero{padding:0 20px;}
+  .slide{padding:80px 30px;}
+  .slide-visual{display:none;}
+  #games,#features,#leaderboard{padding:80px 20px;}
+}
+
+/* Neon color variants */
+.cyan{color:var(--neon-cyan)!important;} .magenta{color:var(--neon-magenta)!important;}
+.gold{color:var(--neon-gold)!important;} .green{color:var(--neon-green)!important;}
+.orange{color:var(--fire-orange)!important;} .purple{color:var(--void-purple)!important;}
+</style>
+</head>
+<body>
+
+<!-- AMBIENT ORBS -->
+<div class="ambient-orb ao1"></div>
+<div class="ambient-orb ao2"></div>
+<div class="ambient-orb ao3"></div>
+
+<!-- OVERLAYS -->
+<div class="scanlines"></div>
+<div class="noise"></div>
+<div class="vignette"></div>
+
+<!-- MOVING OBSTACLES -->
+<div class="obstacle obs-1"></div>
+<div class="obstacle obs-2"></div>
+<div class="obstacle obs-3"></div>
+
+<!-- CANVAS BG -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- CURSOR -->
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-logo">NEXUS</div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-text">INITIALIZING SYSTEMS</div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">NEXUS PROTOCOL</div>
+  <ul class="nav-links">
+    <li><a href="#hero">HOME</a></li>
+    <li><a href="#games">GAMES</a></li>
+    <li><a href="#features">FEATURES</a></li>
+    <li><a href="#stats">STATS</a></li>
+    <li><a href="#leaderboard">LEADERBOARD</a></li>
+  </ul>
+  <div class="nav-status">
+    <div class="status-dot"></div>
+    SERVER ONLINE
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <canvas id="hero-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;"></canvas>
+  <div class="grid-floor"></div>
+  <div class="horizon-glow"></div>
+
+  <!-- Corner brackets -->
+  <div class="corner-bracket cb-tl"></div>
+  <div class="corner-bracket cb-tr"></div>
+  <div class="corner-bracket cb-bl"></div>
+  <div class="corner-bracket cb-br"></div>
+
+  <!-- HUD Elements -->
+  <div class="hud-element hud-tl">
+    <div class="hud-label">COORDINATES</div>
+    <div>X: <span id="hud-x" class="cyan">0000</span></div>
+    <div>Y: <span id="hud-y" class="cyan">0000</span></div>
+    <div>Z: <span id="hud-z" class="green">4096</span></div>
+  </div>
+  <div class="hud-element hud-tr">
+    <div class="hud-label">SYSTEM STATUS</div>
+    <div>FPS: <span class="green">144</span></div>
+    <div>PING: <span class="green">4ms</span></div>
+    <div>SHIELD: <span class="cyan">████░ 80%</span></div>
+  </div>
+  <div class="hud-element hud-bl">
+    <div class="hud-label">PLAYER DATA</div>
+    <div>RANK: <span class="gold">LEGEND</span></div>
+    <div>LEVEL: <span class="cyan">99</span></div>
+    <div>XP: <span class="magenta">48,200</span></div>
+  </div>
+  <div class="hud-element hud-br">
+    <div class="hud-label">MISSION</div>
+    <div>ZONE: <span class="orange">NEXUS CORE</span></div>
+    <div>PHASE: <span class="cyan">INFILTRATE</span></div>
+    <div>TIME: <span id="hud-time" class="green">00:00</span></div>
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-pretext">▸ WELCOME TO THE NEXUS PROTOCOL ◂</div>
+    <h1 class="hero-title">
+      <span class="line1 glitch" data-text="NEXUS">NEXUS</span>
+      <span class="line2">PROTOCOL</span>
+    </h1>
+    <p class="hero-sub">Enter the next dimension of gaming reality</p>
+    <div class="hero-cta-group">
+      <a href="#games" class="btn-primary">▶ ENTER THE GAME</a>
+      <a href="#features" class="btn-secondary">◈ EXPLORE WORLD</a>
+    </div>
+  </div>
+
+  <div class="scroll-indicator">
+    <span>SCROLL TO EXPLORE</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- SLIDES SECTION -->
+<section id="slides">
+  <div class="slides-container" id="slidesContainer">
+
+    <!-- SLIDE 1: COMBAT MODE -->
+    <div class="slide slide-1">
+      <div class="slide-content reveal">
+        <div class="slide-num">01</div>
+        <div class="slide-tag" style="color:var(--fire-orange)">◈ COMBAT MODULE</div>
+        <h2 class="slide-title" style="color:var(--fire-orange)">ENTER<br>COMBAT<br>ZONE</h2>
+        <p class="slide-desc">Deploy across war-torn cyber-cities with hyper-realistic ballistics physics, environmental destruction, and adaptive AI enemies that learn your playstyle in real-time.</p>
+        <div class="slide-stats">
+          <div class="stat-item"><span class="stat-val orange">248</span><span class="stat-lbl">Weapons</span></div>
+          <div class="stat-item"><span class="stat-val orange">64</span><span class="stat-lbl">Maps</span></div>
+          <div class="stat-item"><span class="stat-val orange">∞</span><span class="stat-lbl">Tactics</span></div>
+        </div>
+        <a href="#" class="btn-primary" style="background:var(--fire-orange);color:#000;">DEPLOY NOW</a>
+      </div>
+      <div class="slide-visual">
+        <div style="position:relative;width:300px;height:300px;">
+          <div class="wireframe-cube" style="border-color:var(--fire-orange);">
+            <div class="cube-face front" style="border-color:rgba(255,68,0,0.5);background:rgba(255,68,0,0.03);"></div>
+            <div class="cube-face back" style="border-color:rgba(255,68,0,0.3);"></div>
+            <div class="cube-face left" style="border-color:rgba(255,68,0,0.4);"></div>
+            <div class="cube-face right" style="border-color:rgba(255,68,0,0.4);"></div>
+            <div class="cube-face top" style="border-color:rgba(255,68,0,0.2);"></div>
+            <div class="cube-face bottom" style="border-color:rgba(255,68,0,0.2);"></div>
+          </div>
+          <div class="orb" style="width:80px;height:80px;background:radial-gradient(circle,rgba(255,68,0,0.6),transparent);top:10%;left:60%;animation-delay:0s;"></div>
+          <div class="orb" style="width:40px;height:40px;background:radial-gradient(circle,rgba(255,0,128,0.8),transparent);top:60%;left:10%;animation-delay:2s;"></div>
+          <div class="orb" style="width:20px;height:20px;background:radial-gradient(circle,rgba(255,215,0,1),transparent);top:80%;left:75%;animation-delay:4s;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: STEALTH MODE -->
+    <div class="slide slide-2">
+      <div class="slide-content reveal">
+        <div class="slide-num">02</div>
+        <div class="slide-tag" style="color:var(--neon-green)">◈ STEALTH MODULE</div>
+        <h2 class="slide-title" style="color:var(--neon-green)">SHADOW<br>PROTOCOL<br>ACTIVE</h2>
+        <p class="slide-desc">Become invisible. Navigate through quantum-encrypted vaults, hack neural networks, and extract intel without leaving a single data trace in the system logs.</p>
+        <div class="slide-stats">
+          <div class="stat-item"><span class="stat-val green">32</span><span class="stat-lbl">Skill Trees</span></div>
+          <div class="stat-item"><span class="stat-val green">128</span><span class="stat-lbl">Missions</span></div>
+          <div class="stat-item"><span class="stat-val green">4K</span><span class="stat-lbl">Resolution</span></div>
+        </div>
+        <a href="#" class="btn-primary" style="background:var(--neon-green);color:#000;">GO DARK</a>
+      </div>
+      <div class="slide-visual">
+        <div style="position:relative;width:300px;height:300px;">
+          <div class="wireframe-cube" style="animation-duration:18s;animation-direction:reverse;">
+            <div class="cube-face front" style="border-color:rgba(0,255,136,0.5);background:rgba(0,255,136,0.03);"></div>
+            <div class="cube-face back" style="border-color:rgba(0,255,136,0.2);"></div>
+            <div class="cube-face left" style="border-color:rgba(0,255,136,0.3);"></div>
+            <div class="cube-face right" style="border-color:rgba(0,255,136,0.3);"></div>
+            <div class="cube-face top" style="border-color:rgba(0,255,136,0.15);"></div>
+            <div class="cube-face bottom" style="border-color:rgba(0,255,136,0.15);"></div>
+          </div>
+          <div class="orb" style="width:100px;height:100px;background:radial-gradient(circle,rgba(0,255,136,0.4),transparent);top:5%;left:5%;animation-delay:1s;"></div>
+          <div class="orb" style="width:30px;height:30px;background:radial-gradient(circle,rgba(0,51,255,0.9),transparent);top:70%;left:70%;animation-delay:3s;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: SPACE MODE -->
+    <div class="slide slide-3">
+      <div class="slide-content reveal">
+        <div class="slide-num">03</div>
+        <div class="slide-tag" style="color:var(--void-purple)">◈ DEEP SPACE MODULE</div>
+        <h2 class="slide-title" style="color:var(--neon-cyan)">VOID<br>SECTOR<br>OMEGA</h2>
+        <p class="slide-desc">Command capital starships across 100+ procedurally generated galaxy sectors. Each universe is unique, alive, and hostile. Your choices shape the cosmos.</p>
+        <div class="slide-stats">
+          <div class="stat-item"><span class="stat-val cyan">100+</span><span class="stat-lbl">Galaxies</span></div>
+          <div class="stat-item"><span class="stat-val cyan">5K</span><span class="stat-lbl">Ship Parts</span></div>
+          <div class="stat-item"><span class="stat-val cyan">8K</span><span class="stat-lbl">HDR Render</span></div>
+        </div>
+        <a href="#" class="btn-primary">LAUNCH WARP</a>
+      </div>
+      <div class="slide-visual">
+        <div style="position:relative;width:300px;height:300px;">
+          <div class="wireframe-cube" style="width:150px;height:150px;animation-duration:20s;transform-style:preserve-3d;position:absolute;top:25%;left:25%;">
+            <div class="cube-face front" style="width:150px;height:150px;border-color:rgba(102,0,255,0.6);transform:translateZ(75px);background:rgba(102,0,255,0.04);"></div>
+            <div class="cube-face back" style="width:150px;height:150px;border-color:rgba(102,0,255,0.3);transform:translateZ(-75px) rotateY(180deg);"></div>
+            <div class="cube-face left" style="width:150px;height:150px;border-color:rgba(0,245,255,0.4);transform:rotateY(-90deg) translateZ(75px);"></div>
+            <div class="cube-face right" style="width:150px;height:150px;border-color:rgba(0,245,255,0.4);transform:rotateY(90deg) translateZ(75px);"></div>
+            <div class="cube-face top" style="width:150px;height:150px;border-color:rgba(255,0,128,0.3);transform:rotateX(90deg) translateZ(75px);"></div>
+            <div class="cube-face bottom" style="width:150px;height:150px;border-color:rgba(255,0,128,0.3);transform:rotateX(-90deg) translateZ(75px);"></div>
+          </div>
+          <div class="orb" style="width:120px;height:120px;background:radial-gradient(circle,rgba(102,0,255,0.5),transparent);top:0;left:60%;animation-delay:0.5s;"></div>
+          <div class="orb" style="width:60px;height:60px;background:radial-gradient(circle,rgba(0,245,255,0.7),transparent);top:60%;left:0;animation-delay:2.5s;"></div>
+          <div class="orb" style="width:15px;height:15px;background:white;top:20%;left:20%;animation-delay:1s;border-radius:50%;"></div>
+          <div class="orb" style="width:10px;height:10px;background:white;top:70%;left:80%;animation-delay:3s;border-radius:50%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: CYBER MODE -->
+    <div class="slide slide-4">
+      <div class="slide-content reveal">
+        <div class="slide-num">04</div>
+        <div class="slide-tag" style="color:var(--neon-gold)">◈ CYBER MODULE</div>
+        <h2 class="slide-title" style="color:var(--neon-gold)">NEURAL<br>GRID<br>2087</h2>
+        <p class="slide-desc">Hack into the world's most secure neural networks. Every transaction, identity, and thought is a battlefield. Own the data. Own the future. The grid never sleeps.</p>
+        <div class="slide-stats">
+          <div class="stat-item"><span class="stat-val gold">360°</span><span class="stat-lbl">View</span></div>
+          <div class="stat-item"><span class="stat-val gold">AI</span><span class="stat-lbl">Powered</span></div>
+          <div class="stat-item"><span class="stat-val gold">RTX</span><span class="stat-lbl">ON</span></div>
+        </div>
+        <a href="#" class="btn-primary" style="background:var(--neon-gold);color:#000;">JACK IN</a>
+      </div>
+      <div class="slide-visual">
+        <div style="position:relative;width:300px;height:300px;">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+            <div style="width:200px;height:200px;border-radius:50%;border:1px solid rgba(255,215,0,0.4);animation:spinCube 8s linear infinite reverse;box-shadow:0 0 40px rgba(255,215,0,0.2);display:flex;align-items:center;justify-content:center;">
+              <div style="width:140px;height:140px;border-radius:50%;border:1px solid rgba(255,215,0,0.3);animation:spinCube 5s linear infinite;display:flex;align-items:center;justify-content:center;">
+                <div style="width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,0.4),transparent);box-shadow:0 0 30px rgba(255,215,0,0.5);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: VOID MODE -->
+    <div class="slide slide-5">
+      <div class="slide-content reveal">
+        <div class="slide-num">05</div>
+        <div class="slide-tag" style="color:var(--void-purple)">◈ FINAL REALM</div>
+        <h2 class="slide-title" style="color:var(--void-purple)">THE<br>VOID<br>AWAITS</h2>
+        <p class="slide-desc">Beyond the known. Beyond physics. The Void Realm is where legends are made and where the weak cease to exist. Only the worthy may enter. Are you ready to transcend?</p>
+        <div class="slide-stats">
+          <div class="stat-item"><span class="stat-val purple">∞</span><span class="stat-lbl">Possibilities</span></div>
+          <div class="stat-item"><span class="stat-val purple">0</span><span class="stat-lbl">Limits</span></div>
+          <div class="stat-item"><span class="stat-val purple">∅</span><span class="stat-lbl">Mercy</span></div>
+        </div>
+        <a href="#" class="btn-secondary" style="color:var(--void-purple);border-color:var(--void-purple);box-shadow:0 0 20px rgba(102,0,255,0.3);">ENTER THE VOID</a>
+      </div>
+      <div class="slide-visual">
+        <div style="position:relative;width:300px;height:300px;">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+            <div style="width:250px;height:250px;border:1px solid rgba(102,0,255,0.3);clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);background:rgba(102,0,255,0.05);animation:spinCube 10s linear infinite;box-shadow:0 0 60px rgba(102,0,255,0.4),inset 0 0 40px rgba(102,0,255,0.2);"></div>
+          </div>
+          <div class="orb" style="width:200px;height:200px;background:radial-gradient(circle,rgba(102,0,255,0.3),transparent);top:12%;left:12%;animation-delay:0s;filter:blur(20px);"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Slide nav dots -->
+  <div class="slides-nav" id="slidesNav">
+    <div class="slide-dot active" onclick="goToSlide(0)"></div>
+    <div class="slide-dot" onclick="goToSlide(1)"></div>
+    <div class="slide-dot" onclick="goToSlide(2)"></div>
+    <div class="slide-dot" onclick="goToSlide(3)"></div>
+    <div class="slide-dot" onclick="goToSlide(4)"></div>
+  </div>
+
+  <!-- Arrows -->
+  <div class="slide-arrow slide-prev" onclick="changeSlide(-1)">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </div>
+  <div class="slide-arrow slide-next" onclick="changeSlide(1)">
+    <svg viewBox="0 0 24 24"><polyline points="9 6 15 12 9 18"></polyline></svg>
+  </div>
+</section>
+
+<!-- GAMES GRID -->
+<section id="games">
+  <div class="section-header reveal">
+    <span class="section-tag">◈ GAME LIBRARY</span>
+    <h2 class="section-title">CHOOSE YOUR WORLD</h2>
+  </div>
+  <div class="games-grid reveal">
+    <div class="game-card">
+      <div class="game-card-bg bg-combat" style="inset:0;position:absolute;"></div>
+      <div class="game-card-info">
+        <div class="game-card-genre" style="color:var(--fire-orange)">◈ ACTION / FPS</div>
+        <div class="game-card-title">COMBAT PROTOCOL X</div>
+        <div class="game-card-rating">
+          <span style="color:var(--neon-gold)">★★★★★</span>
+          <span style="color:rgba(255,255,255,0.4);font-size:0.65rem;">9.8 / 10</span>
+          <span style="margin-left:auto;color:var(--neon-green);font-size:0.65rem;">ONLINE: 142K</span>
+        </div>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-card-bg bg-stealth" style="inset:0;position:absolute;"></div>
+      <div class="game-card-info">
+        <div class="game-card-genre" style="color:var(--neon-green)">◈ STEALTH / RPG</div>
+        <div class="game-card-title">SHADOW NET</div>
+        <div class="game-card-rating">
+          <span style="color:var(--neon-gold)">★★★★☆</span>
+          <span style="color:rgba(255,255,255,0.4);font-size:0.65rem;">8.9 / 10</span>
+        </div>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-card-bg bg-space" style="inset:0;position:absolute;"></div>
+      <div class="game-card-info">
+        <div class="game-card-genre" style="color:var(--void-purple)">◈ SCI-FI / EXPLORATION</div>
+        <div class="game-card-title">VOID SECTOR OMEGA</div>
+        <div class="game-card-rating">
+          <span style="color:var(--neon-gold)">★★★★★</span>
+          <span style="color:rgba(255,255,255,0.4);font-size:0.65rem;">9.5 / 10</span>
+        </div>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-card-bg bg-cyber" style="inset:0;position:absolute;"></div>
+      <div class="game-card-info">
+        <div class="game-card-genre" style="color:var(--neon-gold)">◈ CYBER / HACKING</div>
+        <div class="game-card-title">NEURAL GRID 2087</div>
+        <div class="game-card-rating">
+          <span style="color:var(--neon-gold)">★★★★☆</span>
+          <span style="color:rgba(255,255,255,0.4);font-size:0.65rem;">8.7 / 10</span>
+        </div>
+      </div>
+    </div>
+    <div class="game-card">
+      <div class="game-card-bg bg-mech" style="inset:0;position:absolute;"></div>
+      <div class="game-card-info">
+        <div class="game-card-genre" style="color:var(--fire-orange)">◈ MECH / STRATEGY</div>
+        <div class="game-card-title">IRON PROTOCOL</div>
+        <div class="game-card-rating">
+          <span style="color:var(--neon-gold)">★★★★★</span>
+          <span style="color:rgba(255,255,255,0.4);font-size:0.65rem;">9.1 / 10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-header reveal">
+    <span class="section-tag">◈ TECHNOLOGY</span>
+    <h2 class="section-title">POWERED BY THE FUTURE</h2>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feat-card">
+      <div class="feat-num">01</div>
+      <div class="feat-icon"><div class="feat-icon-inner">⚡</div></div>
+      <div class="feat-title">Ray-Traced VFX</div>
+      <div class="feat-desc">Real-time ray tracing with path-traced global illumination delivering photorealistic lighting, shadows, and reflections at 4K 144fps.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">02</div>
+      <div class="feat-icon"><div class="feat-icon-inner" style="background:rgba(255,0,128,0.1);border-color:rgba(255,0,128,0.4);">🧠</div></div>
+      <div class="feat-title">Neural AI Engine</div>
+      <div class="feat-desc">Adaptive machine learning enemies that analyze your combat patterns and evolve counter-strategies in real-time, ensuring no two battles are the same.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">03</div>
+      <div class="feat-icon"><div class="feat-icon-inner" style="background:rgba(255,215,0,0.1);border-color:rgba(255,215,0,0.4);">🌍</div></div>
+      <div class="feat-title">Procedural Worlds</div>
+      <div class="feat-desc">Infinite procedurally generated environments using quantum noise algorithms. Every session spawns a unique world with emergent biomes and civilizations.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">04</div>
+      <div class="feat-icon"><div class="feat-icon-inner" style="background:rgba(0,255,136,0.1);border-color:rgba(0,255,136,0.4);">🔗</div></div>
+      <div class="feat-title">Blockchain Items</div>
+      <div class="feat-desc">True ownership of in-game assets via blockchain verification. Trade, sell, and display your rarest items across the entire NEXUS ecosystem.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">05</div>
+      <div class="feat-icon"><div class="feat-icon-inner" style="background:rgba(102,0,255,0.1);border-color:rgba(102,0,255,0.4);">🎮</div></div>
+      <div class="feat-title">Haptic Immersion</div>
+      <div class="feat-desc">Full haptic feedback ecosystem with 3D spatial audio, 360° vibration mapping, and VR/AR cross-platform support for total sensory immersion.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">06</div>
+      <div class="feat-icon"><div class="feat-icon-inner" style="background:rgba(255,68,0,0.1);border-color:rgba(255,68,0,0.4);">🔥</div></div>
+      <div class="feat-title">Destruction Physics</div>
+      <div class="feat-desc">Voxel-based destruction system with real fluid dynamics. Every wall, vehicle, and structure can be destroyed with physics-accurate simulation.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">07</div>
+      <div class="feat-icon"><div class="feat-icon-inner" style="background:rgba(0,245,255,0.1);border-color:rgba(0,245,255,0.4);">🌐</div></div>
+      <div class="feat-title">Global Servers</div>
+      <div class="feat-desc">128-tick dedicated servers across 48 global regions with sub-5ms latency. Our distributed mesh network ensures lag-free gaming anywhere on Earth.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-num">08</div>
+      <div class="feat-icon"><div class="feat-icon-inner" style="background:rgba(255,215,0,0.1);border-color:rgba(255,215,0,0.4);">👁️</div></div>
+      <div class="feat-title">8K Ultra Render</div>
+      <div class="feat-desc">Industry-first 8K HDR rendering pipeline with DLSS 4.0 neural upscaling. Experience every pore of a character's face and every leaf on a distant tree.</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAND -->
+<section id="stats">
+  <div class="stats-grid">
+    <div class="stat-block reveal">
+      <span class="stat-number cyan" id="stat1">0</span>
+      <span class="stat-label">Active Players</span>
+      <div class="stat-bar"></div>
+    </div>
+    <div class="stat-block reveal">
+      <span class="stat-number magenta" id="stat2">0</span>
+      <span class="stat-label">Games Played</span>
+      <div class="stat-bar" style="background:var(--neon-magenta);box-shadow:0 0 10px var(--neon-magenta);animation-delay:0.3s;"></div>
+    </div>
+    <div class="stat-block reveal">
+      <span class="stat-number gold" id="stat3">0</span>
+      <span class="stat-label">Tournament Prize Pool</span>
+      <div class="stat-bar" style="background:var(--neon-gold);box-shadow:0 0 10px var(--neon-gold);animation-delay:0.6s;"></div>
+    </div>
+    <div class="stat-block reveal">
+      <span class="stat-number green" id="stat4">0</span>
+      <span class="stat-label">Worlds Generated</span>
+      <div class="stat-bar" style="background:var(--neon-green);box-shadow:0 0 10px var(--neon-green);animation-delay:0.9s;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- LEADERBOARD -->
+<section id="leaderboard">
+  <div class="section-header reveal">
+    <span class="section-tag">◈ GLOBAL RANKINGS</span>
+    <h2 class="section-title">ELITE LEADERBOARD</h2>
+  </div>
+  <div class="lb-table reveal">
+    <div class="lb-row" style="background:rgba(255,215,0,0.03);border-color:rgba(255,215,0,0.2);">
+      <div class="lb-rank gold">01</div>
+      <div class="lb-player">SHADOW_REAPER</div>
+      <div class="lb-level" style="color:var(--neon-gold);">LVL 99 — LEGEND</div>
+      <div class="lb-score">9,847,320</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank silver">02</div>
+      <div class="lb-player">NEXUS_PHANTOM</div>
+      <div class="lb-level">LVL 98 — GRANDMASTER</div>
+      <div class="lb-score">8,234,100</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank bronze">03</div>
+      <div class="lb-player">VOID_STRIKER</div>
+      <div class="lb-level">LVL 97 — GRANDMASTER</div>
+      <div class="lb-score">7,923,450</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">04</div>
+      <div class="lb-player">CYBER_WRAITH</div>
+      <div class="lb-level">LVL 96 — ELITE</div>
+      <div class="lb-score" style="color:var(--neon-cyan);">7,123,000</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">05</div>
+      <div class="lb-player">IRON_PROTOCOL</div>
+      <div class="lb-level">LVL 95 — ELITE</div>
+      <div class="lb-score" style="color:var(--neon-cyan);">6,890,670</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">06</div>
+      <div class="lb-player">QUANTUM_BLADE</div>
+      <div class="lb-level">LVL 94 — ELITE</div>
+      <div class="lb-score" style="color:var(--neon-cyan);">6,234,120</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">07</div>
+      <div class="lb-player">NEURAL_STORM</div>
+      <div class="lb-level">LVL 92 — ELITE</div>
+      <div class="lb-score" style="color:var(--neon-cyan);">5,980,400</div>
+    </div>
+    <div class="lb-row">
+      <div class="lb-rank">08</div>
+      <div class="lb-player">DARK_PROTOCOL</div>
+      <div class="lb-level">LVL 91 — MASTER</div>
+      <div class="lb-score" style="color:rgba(0,245,255,0.6);">5,670,880</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <span class="nav-logo">NEXUS PROTOCOL</span>
+      <p class="footer-about">The most immersive gaming universe ever constructed. Enter worlds beyond imagination, forge legends in the digital realm, and transcend the boundaries of reality itself.</p>
+    </div>
+    <div>
+      <div class="footer-col-title">GAMES</div>
+      <ul class="footer-links">
+        <li><a href="#">Combat Protocol X</a></li>
+        <li><a href="#">Shadow Net</a></li>
+        <li><a href="#">Void Sector Omega</a></li>
+        <li><a href="#">Neural Grid 2087</a></li>
+        <li><a href="#">Iron Protocol</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">NEXUS</div>
+      <ul class="footer-links">
+        <li><a href="#">About</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">Press Kit</a></li>
+        <li><a href="#">Investors</a></li>
+        <li><a href="#">Partners</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">SUPPORT</div>
+      <ul class="footer-links">
+        <li><a href="#">Help Center</a></li>
+        <li><a href="#">Community</a></li>
+        <li><a href="#">Status Page</a></li>
+        <li><a href="#">Bug Report</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-copy">© 2087 NEXUS PROTOCOL CORP. ALL RIGHTS RESERVED IN ALL DIMENSIONS.</div>
+    <div class="footer-version">v8.7.4 — BUILD 20870429</div>
+  </div>
+</footer>
+
+<script>
+// ═══════════════ LOADER ═══════════════
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('loader');
+    loader.style.opacity = '0';
+    loader.style.pointerEvents = 'none';
+    setTimeout(() => loader.remove(), 800);
+  }, 2800);
+});
+
+// ═══════════════ CURSOR ═══════════════
+const cursor = document.getElementById('cursor');
+const cursorDot = document.getElementById('cursor-dot');
+let mx = 0, my = 0, cx = 0, cy = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+function animateCursor() {
+  cx += (mx - cx) * 0.12; cy += (my - cy) * 0.12;
+  cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+  cursorDot.style.left = mx + 'px'; cursorDot.style.top = my + 'px';
+  requestAnimationFrame(animateCursor);
+}
+animateCursor();
+document.querySelectorAll('a, button, .game-card, .slide-dot, .slide-arrow, .feat-card, .lb-row').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cursor.style.width = '40px'; cursor.style.height = '40px';
+    cursor.style.background = 'rgba(0,245,255,0.1)';
+    cursor.style.borderColor = 'var(--neon-magenta)';
+  });
+  el.addEventListener('mouseleave', () => {
+    cursor.style.width = '20px'; cursor.style.height = '20px';
+    cursor.style.background = 'transparent';
+    cursor.style.borderColor = 'var(--neon-cyan)';
+  });
+});
+
+// ═══════════════ BACKGROUND CANVAS (PARTICLE FIELD) ═══════════════
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d');
+bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight;
+window.addEventListener('resize', () => { bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; });
+
+const PARTICLES = [];
+const PARTICLE_COUNT = 120;
+class Particle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * bgCanvas.width;
+    this.y = Math.random() * bgCanvas.height;
+    this.vx = (Math.random() - 0.5) * 0.4;
+    this.vy = (Math.random() - 0.5) * 0.4;
+    this.r = Math.random() * 1.5 + 0.3;
+    this.life = Math.random();
+    this.speed = Math.random() * 0.005 + 0.002;
+    const colors = ['0,245,255','255,0,128','102,0,255','255,215,0','0,255,136'];
+    this.color = colors[Math.floor(Math.random() * colors.length)];
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    this.life += this.speed;
+    if (this.x < 0 || this.x > bgCanvas.width || this.y < 0 || this.y > bgCanvas.height) this.reset();
+  }
+  draw() {
+    const alpha = Math.sin(this.life * Math.PI) * 0.6;
+    bgCtx.beginPath();
+    bgCtx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    bgCtx.fillStyle = `rgba(${this.color},${alpha})`;
+    bgCtx.fill();
+  }
+}
+for (let i = 0; i < PARTICLE_COUNT; i++) PARTICLES.push(new Particle());
+
+// Connection lines
+function drawConnections() {
+  for (let i = 0; i < PARTICLES.length; i++) {
+    for (let j = i + 1; j < PARTICLES.length; j++) {
+      const dx = PARTICLES[i].x - PARTICLES[j].x;
+      const dy = PARTICLES[i].y - PARTICLES[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 120) {
+        const alpha = (1 - dist / 120) * 0.12;
+        bgCtx.beginPath();
+        bgCtx.moveTo(PARTICLES[i].x, PARTICLES[i].y);
+        bgCtx.lineTo(PARTICLES[j].x, PARTICLES[j].y);
+        bgCtx.strokeStyle = `rgba(0,245,255,${alpha})`;
+        bgCtx.lineWidth = 0.5;
+        bgCtx.stroke();
+      }
+    }
+  }
+}
+function animateBg() {
+  bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+  PARTICLES.forEach(p => { p.update(); p.draw(); });
+  drawConnections();
+  requestAnimationFrame(animateBg);
+}
+animateBg();
+
+// ═══════════════ HERO CANVAS (FLOATING RINGS) ═══════════════
+const heroCanvas = document.getElementById('hero-canvas');
+const hCtx = heroCanvas.getContext('2d');
+function resizeHeroCanvas() {
+  heroCanvas.width = heroCanvas.offsetWidth;
+  heroCanvas.height = heroCanvas.offsetHeight;
+}
+resizeHeroCanvas(); window.addEventListener('resize', resizeHeroCanvas);
+
+let heroTime = 0;
+function animateHero() {
+  hCtx.clearRect(0, 0, heroCanvas.width, heroCanvas.height);
+  const cx_ = heroCanvas.width / 2, cy_ = heroCanvas.height / 2;
+  heroTime += 0.008;
+
+  // Concentric rotating rings
+  for (let i = 1; i <= 5; i++) {
+    const r = 80 + i * 60;
+    const rot = heroTime * (i % 2 === 0 ? 1 : -1) * (0.3 + i * 0.05);
+    const segments = 8 + i * 4;
+    hCtx.save();
+    hCtx.translate(cx_, cy_);
+    hCtx.rotate(rot);
+    for (let s = 0; s < segments; s++) {
+      const a1 = (s / segments) * Math.PI * 2;
+      const a2 = ((s + 0.7) / segments) * Math.PI * 2;
+      hCtx.beginPath();
+      hCtx.arc(0, 0, r, a1, a2);
+      const alpha = 0.08 + Math.sin(heroTime * 2 + i) * 0.04;
+      if (i <= 2) hCtx.strokeStyle = `rgba(0,245,255,${alpha})`;
+      else if (i <= 3) hCtx.strokeStyle = `rgba(255,0,128,${alpha})`;
+      else hCtx.strokeStyle = `rgba(102,0,255,${alpha})`;
+      hCtx.lineWidth = 1.5;
+      hCtx.stroke();
+    }
+    hCtx.restore();
+  }
+
+  // Orbiting dots
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2 + heroTime * 0.5;
+    const radius = 220 + Math.sin(heroTime * 1.5 + i) * 30;
+    const x = cx_ + Math.cos(angle) * radius;
+    const y = cy_ + Math.sin(angle) * radius;
+    const size = 1.5 + Math.sin(heroTime * 2 + i * 0.7) * 0.8;
+    hCtx.beginPath();
+    hCtx.arc(x, y, size, 0, Math.PI * 2);
+    hCtx.fillStyle = `rgba(0,245,255,${0.3 + Math.sin(heroTime + i) * 0.2})`;
+    hCtx.fill();
+  }
+
+  requestAnimationFrame(animateHero);
+}
+animateHero();
+
+// ═══════════════ HUD UPDATES ═══════════════
+let hudStart = Date.now();
+setInterval(() => {
+  document.getElementById('hud-x').textContent = (Math.random() * 9999).toFixed(0).padStart(4,'0');
+  document.getElementById('hud-y').textContent = (Math.random() * 9999).toFixed(0).padStart(4,'0');
+  const elapsed = Math.floor((Date.now() - hudStart) / 1000);
+  const m = Math.floor(elapsed / 60).toString().padStart(2,'0');
+  const s = (elapsed % 60).toString().padStart(2,'0');
+  document.getElementById('hud-time').textContent = `${m}:${s}`;
+}, 800);
+
+// ═══════════════ SLIDE SYSTEM ═══════════════
+let currentSlide = 0;
+const totalSlides = 5;
+const container = document.getElementById('slidesContainer');
+const dots = document.querySelectorAll('.slide-dot');
+function goToSlide(n) {
+  currentSlide = Math.max(0, Math.min(n, totalSlides - 1));
+  container.style.transform = `translateX(-${currentSlide * 20}%)`;
+  dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+}
+function changeSlide(dir) { goToSlide(currentSlide + dir); }
+
+// Auto-slide
+setInterval(() => { goToSlide((currentSlide + 1) % totalSlides); }, 6000);
+
+// Touch/swipe
+let touchStartX = 0;
+document.getElementById('slides').addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].clientX; });
+document.getElementById('slides').addEventListener('touchend', e => {
+  const diff = touchStartX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1);
+});
+
+// ═══════════════ SCROLL REVEAL ═══════════════
+const revealEls = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), i * 80);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+revealEls.forEach(el => observer.observe(el));
+
+// ═══════════════ COUNTER ANIMATION ═══════════════
+function animateCount(el, target, suffix, duration) {
+  const start = performance.now();
+  const update = (time) => {
+    const progress = Math.min((time - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.floor(eased * target);
+    el.textContent = current.toLocaleString() + suffix;
+    if (progress < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+const statsObs = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      animateCount(document.getElementById('stat1'), 24800000, '+', 2500);
+      animateCount(document.getElementById('stat2'), 1800000000, '', 2500);
+      animateCount(document.getElementById('stat3'), 50000000, '$', 2500);
+      animateCount(document.getElementById('stat4'), 9900000, '+', 2500);
+      statsObs.disconnect();
+    }
+  });
+}, { threshold: 0.3 });
+statsObs.observe(document.getElementById('stats'));
+
+// ═══════════════ PARALLAX MOUSE ═══════════════
+document.addEventListener('mousemove', e => {
+  const nx = (e.clientX / window.innerWidth - 0.5) * 2;
+  const ny = (e.clientY / window.innerHeight - 0.5) * 2;
+  document.querySelectorAll('.corner-bracket').forEach((el, i) => {
+    el.style.transform = `translate(${nx * (8 + i * 3)}px, ${ny * (8 + i * 3)}px)`;
+  });
+  document.querySelectorAll('.hud-element').forEach((el, i) => {
+    el.style.transform = `translate(${nx * (5 + i * 2)}px, ${ny * (5 + i * 2)}px)`;
+  });
+  document.querySelectorAll('.ambient-orb').forEach((el, i) => {
+    el.style.transform += ` translate(${nx * (10 + i * 5)}px, ${ny * (10 + i * 5)}px)`;
+  });
+});
+
+// ═══════════════ GLITCH FLASH EFFECT ═══════════════
+setInterval(() => {
+  if (Math.random() > 0.85) {
+    document.body.style.filter = 'hue-rotate(180deg) brightness(1.5)';
+    setTimeout(() => { document.body.style.filter = ''; }, 60);
+  }
+}, 5000);
+
+// ═══════════════ LOADER TEXT CYCLE ═══════════════
+const loaderMsgs = ['INITIALIZING SYSTEMS...', 'LOADING VFX ENGINE...', 'CALIBRATING PHYSICS...', 'ENTERING THE NEXUS...'];
+let lIdx = 0;
+const loaderTextEl = document.querySelector('.loader-text');
+if (loaderTextEl) {
+  setInterval(() => {
+    lIdx = (lIdx + 1) % loaderMsgs.length;
+    loaderTextEl.textContent = loaderMsgs[lIdx];
+  }, 700);
+}
+</script>
+</body>
+</html>
